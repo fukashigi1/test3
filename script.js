@@ -1,4 +1,5 @@
 import DeviceDetector from "https://cdn.skypack.dev/device-detector-js@2.2.10";
+
 const mpHands = window;
 const drawingUtils = window;
 const controls = window;
@@ -23,16 +24,14 @@ const grid = new controls3d.LandmarkGrid(landmarkContainer, {
     connectionColor: 0xCCCCCC,
     definedColors: [{ name: 'Left', value: 0xffa500 }, { name: 'Right', value: 0x00ffff }],
     range: 0.2,
-    fitToGrid: false,
-    labelSuffix: 'm',
+    fitToGrid: true,
     landmarkSize: 2,
     numCellsPerAxis: 4,
     showHidden: false,
-    centered: false,
+    centered: true,
 });
+
 function onResults(results) {
-    // Hide the spinner.
-    document.body.classList.add('loaded');
     // Update the frame rate.
     fpsControl.tick();
     // Draw the overlays.
@@ -44,6 +43,9 @@ function onResults(results) {
             const classification = results.multiHandedness[index];
             const isRightHand = classification.label === 'Right';
             const landmarks = results.multiHandLandmarks[index];
+
+            //console.log(results.multiHandLandmarks[index]);
+
             drawingUtils.drawConnectors(canvasCtx, landmarks, mpHands.HAND_CONNECTIONS, { color: isRightHand ? '#00FF00' : '#FF0000' });
             drawingUtils.drawLandmarks(canvasCtx, landmarks, {
                 color: isRightHand ? '#00FF00' : '#FF0000',
@@ -71,12 +73,14 @@ function onResults(results) {
                 color: classification.label,
             });
         }
+        console.log(landmarks)
         grid.updateLandmarks(landmarks, connections, colors);
     }
     else {
         grid.updateLandmarks([]);
     }
 }
+
 const hands = new mpHands.Hands(config);
 hands.onResults(onResults);
 // Present a control panel through which the user can manipulate the solution
@@ -86,11 +90,11 @@ new controls
     selfieMode: true,
     maxNumHands: 1,
     modelComplexity: 0,
-    minDetectionConfidence: 0.5,
+    minDetectionConfidence: 0.3,
     minTrackingConfidence: 0.5
 })
     .add([
-    new controls.StaticText({ title: 'MediaPipe Hands' }),
+    new controls.StaticText({ title: 'Motion Pose' }),
     fpsControl,
     new controls.SourcePicker({
         onFrame: async (input, size) => {
@@ -110,16 +114,10 @@ new controls
         },
     }),
     new controls.Slider({
-        title: 'Max Number of Hands',
-        field: 'maxNumHands',
-        range: [1, 4],
-        step: 1
-    }),
-    new controls.Slider({
         title: 'Model Complexity',
         field: 'modelComplexity',
         discrete: ['Lite', 'Full'],
-    }),
+    }), 
     new controls.Slider({
         title: 'Min Detection Confidence',
         field: 'minDetectionConfidence',
