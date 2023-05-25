@@ -9,6 +9,7 @@ const videoElement = document.getElementsByClassName('input_video')[0];
 const canvasElement = document.getElementsByClassName('output_canvas')[0];
 const controlsElement = document.getElementsByClassName('control-panel')[0];
 const canvasCtx = canvasElement.getContext('2d');
+const coordenadas = document.getElementById('coordenadas');
 
 const config = { locateFile: (file) => { //esta wea llama al modelo de entrenamiento hand_landmarker.task
         return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@${mpHands.VERSION}/${file}`;
@@ -31,6 +32,29 @@ const grid = new controls3d.LandmarkGrid(landmarkContainer, {
     centered: true,
 });
 
+function extractData(landmarks){
+    var transformed = JSON.stringify(landmarks) //se transforma de objeto a string.
+    //De aquí para abajo se quitan todos los caractere especiales como, {[":,.
+    var output = transformed.replace(/[\[\]{}]/g, '');
+    output = output.replace(/"|x|y|z|:/g, '');
+    output = output.replace(/,/g, ' ');
+    //Se separa el string con los 21 datos en una lista.
+    var valores = output.split(' ')
+    //Se trunca cada numero por 6 decimales, (dice 8 porque en realidad se está cortando un string)
+    //Supongamos que tenemos 0.8482732838293, quedaría en 0.848273 (8 caracteres [6 decimales]).
+    valores = valores.map(function(elemento) {
+        return elemento.substring(0, 8);
+      });
+    //Se transforma cada elemento de la lista (strings) en flotantes.
+    valores = valores.map(function(elemento) {
+      return parseFloat(elemento)
+    });
+    //ESTA FUNCION TRANSFORMA LOS DATOS DE OBJETO A FLOATS, SE ALMACENA TODO EN LA LISTA
+    //VALORES, LA CUAL CONTIENE 63 ELEMENTOS (X, Y ,Z * 3)
+    coordenadas.innerHTML = valores //<-- Se muestra a tiempo real dentro del h1 en el html.
+    console.log(valores)
+}
+
 function onResults(results) {
     // Update the frame rate.
     fpsControl.tick();
@@ -45,6 +69,8 @@ function onResults(results) {
             const landmarks = results.multiHandLandmarks[index];
 
             //console.log(results.multiHandLandmarks[index]);
+
+            extractData(landmarks)
 
             drawingUtils.drawConnectors(canvasCtx, landmarks, mpHands.HAND_CONNECTIONS, { color: isRightHand ? '#00FF00' : '#FF0000' });
             drawingUtils.drawLandmarks(canvasCtx, landmarks, {
@@ -73,7 +99,6 @@ function onResults(results) {
                 color: classification.label,
             });
         }
-        console.log(landmarks)
         grid.updateLandmarks(landmarks, connections, colors);
     }
     else {
