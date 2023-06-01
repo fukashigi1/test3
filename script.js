@@ -33,6 +33,10 @@ const grid = new controls3d.LandmarkGrid(landmarkContainer, {
 });
 
 function extractData(landmarks){
+    //ESTA FUNCION TRANSFORMA LOS DATOS DE OBJETO A FLOATS, SE ALMACENA TODO EN LA LISTA
+    //VALORES, LA CUAL CONTIENE 63 ELEMENTOS (X, Y ,Z * 3)
+
+    const scaleFactor = 100; //Variable para ajustar la escala de las coordenadas
     var transformed = JSON.stringify(landmarks) //se transforma de objeto a string.
     //De aquí para abajo se quitan todos los caractere especiales como, {[":,.
     var output = transformed.replace(/[\[\]{}]/g, '');
@@ -41,18 +45,14 @@ function extractData(landmarks){
     //Se separa el string con los 21 datos en una lista.
     var valores = output.split(' ')
     //Se trunca cada numero por 6 decimales, (dice 8 porque en realidad se está cortando un string)
-    //Supongamos que tenemos 0.8482732838293, quedaría en 0.848273 (8 caracteres [6 decimales]).
-    valores = valores.map(function(elemento) {
-        return elemento.substring(0, 8);
-      });
     //Se transforma cada elemento de la lista (strings) en flotantes.
     valores = valores.map(function(elemento) {
       return parseFloat(elemento)
     });
-    //ESTA FUNCION TRANSFORMA LOS DATOS DE OBJETO A FLOATS, SE ALMACENA TODO EN LA LISTA
-    //VALORES, LA CUAL CONTIENE 63 ELEMENTOS (X, Y ,Z * 3)
-    coordenadas.innerHTML = valores //<-- Se muestra a tiempo real dentro del h1 en el html.
-    console.log(valores)
+    const valoresEscalados = valores.map((valor) => (valor * scaleFactor).toFixed(6)); //se escala por 100 y se corta en 6 decimales.
+    const valoresPlanos = valoresEscalados.flat().map(Number);; //Transformamos todo a un array plano
+    coordenadas.innerHTML = valoresPlanos //<-- Se muestra a tiempo real dentro del h1 en el html.
+    console.log(valoresPlanos)
 }
 
 function onResults(results) {
@@ -70,7 +70,7 @@ function onResults(results) {
 
             //console.log(results.multiHandLandmarks[index]);
 
-            extractData(landmarks)
+            //extractData(landmarks)
 
             drawingUtils.drawConnectors(canvasCtx, landmarks, mpHands.HAND_CONNECTIONS, { color: isRightHand ? '#00FF00' : '#FF0000' });
             drawingUtils.drawLandmarks(canvasCtx, landmarks, {
@@ -87,6 +87,7 @@ function onResults(results) {
         // We only get to call updateLandmarks once, so we need to cook the data to
         // fit. The landmarks just merge, but the connections need to be offset.
         const landmarks = results.multiHandWorldLandmarks.reduce((prev, current) => [...prev, ...current], []);
+
         const colors = [];
         let connections = [];
         for (let loop = 0; loop < results.multiHandWorldLandmarks.length; ++loop) {
@@ -99,6 +100,7 @@ function onResults(results) {
                 color: classification.label,
             });
         }
+        extractData(landmarks)
         grid.updateLandmarks(landmarks, connections, colors);
     }
     else {
@@ -108,8 +110,6 @@ function onResults(results) {
 
 const hands = new mpHands.Hands(config);
 hands.onResults(onResults);
-// Present a control panel through which the user can manipulate the solution
-// options.
 new controls
     .ControlPanel(controlsElement, {
     selfieMode: true,
@@ -139,18 +139,18 @@ new controls
         },
     }),
     new controls.Slider({
-        title: 'Model Complexity',
+        title: 'Complejidad del modelo',
         field: 'modelComplexity',
-        discrete: ['Lite', 'Full'],
+        discrete: ['Minima', 'Completa'],
     }), 
     new controls.Slider({
-        title: 'Min Detection Confidence',
+        title: 'Confidencia de detección',
         field: 'minDetectionConfidence',
         range: [0, 1],
         step: 0.01
     }),
     new controls.Slider({
-        title: 'Min Tracking Confidence',
+        title: 'Confidencia de seguimiento',
         field: 'minTrackingConfidence',
         range: [0, 1],
         step: 0.01
